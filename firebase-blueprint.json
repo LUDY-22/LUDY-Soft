@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "Store": {
+      "title": "Store",
+      "description": "A physical or virtual store location.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "receiptHeader": { "type": "string" },
+        "receiptFooter": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A system user with specific roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "manager", "cashier"] },
+        "storeId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "An item available for sale.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "buyPrice": { "type": "number" },
+        "sellPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "minStock": { "type": "number" },
+        "barcode": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "storeId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "sellPrice", "storeId"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "A completed transaction.",
+      "type": "object",
+      "properties": {
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "cashierId": { "type": "string" },
+        "storeId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["total", "storeId", "timestamp"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "A provider of products.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "storeId": { "type": "string" }
+      },
+      "required": ["name", "storeId"]
+    },
+    "Log": {
+      "title": "Log",
+      "description": "Audit log of system actions.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "storeId": { "type": "string" }
+      },
+      "required": ["userId", "action", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/stores": { "schema": "Store", "description": "Collection of stores." },
+    "/users": { "schema": "User", "description": "Collection of users." },
+    "/products": { "schema": "Product", "description": "Collection of products." },
+    "/sales": { "schema": "Sale", "description": "Collection of sales." },
+    "/suppliers": { "schema": "Supplier", "description": "Collection of suppliers." },
+    "/logs": { "schema": "Log", "description": "Collection of audit logs." }
+  }
+}

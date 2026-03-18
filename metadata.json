@@ -1,0 +1,5 @@
+{
+  "name": "LUDY soft ERP/POS",
+  "description": "Professional ERP and POS system for stores, featuring inventory management, sales tracking, and multi-store support.",
+  "requestFramePermissions": ["camera"]
+}

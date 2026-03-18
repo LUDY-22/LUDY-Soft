@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'admin') || 
+        request.auth.token.email == "Josuemantantu@gmail.com"
+      );
+    }
+    
+    function isManager() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'manager';
+    }
+    
+    function isStoreMember(storeId) {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().storeId == storeId;
+    }
+
+    // Stores
+    match /stores/{storeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isManager());
+      allow create: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+      allow update: if isAuthenticated() && (isAdmin() || (request.auth.uid == userId && request.resource.data.role == resource.data.role));
+    }
+
+    // Products
+    match /products/{productId} {
+      allow read: if isAuthenticated() && isStoreMember(resource.data.storeId);
+      allow create: if isAuthenticated() && (isAdmin() || isManager()) && isStoreMember(request.resource.data.storeId);
+      allow update: if isAuthenticated() && (isAdmin() || isManager() || getUserData().role == 'cashier') && isStoreMember(resource.data.storeId);
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Sales
+    match /sales/{saleId} {
+      allow read: if isAuthenticated() && isStoreMember(resource.data.storeId);
+      allow create: if isAuthenticated() && isStoreMember(request.resource.data.storeId);
+      allow update, delete: if false; // Sales are immutable for security
+    }
+
+    // Suppliers
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated() && isStoreMember(resource.data.storeId);
+      allow write: if isAuthenticated() && (isAdmin() || isManager()) && isStoreMember(request.resource.data.storeId);
+    }
+
+    // Logs
+    match /logs/{logId} {
+      allow read: if isAuthenticated() && (isAdmin() || isManager());
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+  }
+}

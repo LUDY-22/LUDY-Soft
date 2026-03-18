@@ -1,0 +1,42 @@
+{
+  "users": [
+    {
+      "uid": "admin-123",
+      "email": "admin@ludysoft.com",
+      "password": "$2b$10$InZLHv5cwg7DJtCqa7k2quRemLUeO/wNHP6Hl5xeIwDe4p1/Vy9vq",
+      "displayName": "Administrador",
+      "role": "admin",
+      "storeId": "main-store",
+      "createdAt": "2026-03-18T11:29:20.114Z"
+    }
+  ],
+  "stores": [
+    {
+      "id": "main-store",
+      "name": "LUDY soft Matriz",
+      "address": "Luanda, Angola",
+      "phone": "+244 900 000 000",
+      "receiptHeader": "LUDY soft - Gestão Inteligente",
+      "receiptFooter": "Obrigado pela preferência!",
+      "createdAt": "2026-03-18T11:29:19.994Z"
+    }
+  ],
+  "products": [
+    {
+      "name": "Hjkjn",
+      "category": "Ft",
+      "buyPrice": 500,
+      "sellPrice": 5000,
+      "stock": 200,
+      "minStock": 5,
+      "barcode": "",
+      "imageUrl": "",
+      "id": "fs527ez8u",
+      "storeId": "main-store",
+      "createdAt": "2026-03-18T11:42:49.678Z"
+    }
+  ],
+  "sales": [],
+  "movements": [],
+  "logs": []
+}
