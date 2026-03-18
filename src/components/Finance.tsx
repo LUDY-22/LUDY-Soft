@@ -30,9 +30,10 @@ const Finance: React.FC<FinanceProps> = ({ user, store }) => {
   }, [store]);
 
   const fetchSales = async () => {
+    if (!store) return;
     setLoading(true);
     try {
-      const allSales = await api.sales.list();
+      const allSales = await api.sales.list(store.id);
       setSales(allSales);
     } catch (err) {
       console.error(err);

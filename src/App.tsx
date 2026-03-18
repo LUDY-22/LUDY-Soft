@@ -21,28 +21,30 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const currentUser = api.auth.getCurrentUser();
+    const unsubscribe = api.auth.onAuthStateChanged(async (currentUser) => {
       if (currentUser) {
         try {
           setUser(currentUser);
-          const storeData = await api.store.get();
+          const storeData = await api.store.get(currentUser.storeId);
           setStore(storeData);
         } catch (error) {
           console.error("Error fetching user data:", error);
           api.auth.logout();
           setUser(null);
         }
+      } else {
+        setUser(null);
+        setStore(null);
       }
       setLoading(false);
-    };
+    });
 
-    checkAuth();
+    return () => unsubscribe();
   }, []);
 
   const handleLogin = (userData: UserProfile) => {
     setUser(userData);
-    api.store.get().then(setStore).catch(console.error);
+    api.store.get(userData.storeId).then(setStore).catch(console.error);
   };
 
   const handleLogout = () => {

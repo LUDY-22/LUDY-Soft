@@ -1,71 +1,230 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper functions
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - User's unique ID
+    //   - email: string (required) - User's email
+    //   - displayName: string (optional) - User's name
+    //   - role: string (required, enum: ['admin', 'manager', 'cashier']) - User's role
+    //   - storeId: string (required) - Store ID the user belongs to
+    //   - createdAt: string (optional) - Creation timestamp
+    //
+    // Collection: stores
+    // Document ID: {storeId}
+    // Fields:
+    //   - id: string (required) - Store ID
+    //   - name: string (required) - Store name
+    //   - address: string (optional) - Store address
+    //   - phone: string (optional) - Store phone
+    //   - receiptHeader: string (optional) - Header for receipts
+    //   - receiptFooter: string (optional) - Footer for receipts
+    //   - createdAt: string (optional) - Creation timestamp
+    //
+    // Collection: products
+    // Document ID: {productId}
+    // Fields:
+    //   - id: string (required) - Product ID
+    //   - name: string (required) - Product name
+    //   - category: string (optional) - Product category
+    //   - buyPrice: number (required) - Purchase price
+    //   - sellPrice: number (required) - Selling price
+    //   - stock: number (required) - Current stock level
+    //   - minStock: number (optional) - Minimum stock level
+    //   - barcode: string (optional) - Barcode
+    //   - imageUrl: string (optional) - Image URL
+    //   - storeId: string (required) - Store ID
+    //   - createdAt: string (optional) - Creation timestamp
+    //
+    // Collection: sales
+    // Document ID: {saleId}
+    // Fields:
+    //   - id: string (required) - Sale ID
+    //   - items: list (required) - List of sale items
+    //   - total: number (required) - Total sale amount
+    //   - paymentMethod: string (required, enum: ['cash', 'card', 'transfer']) - Payment method
+    //   - cashierId: string (required) - Cashier's UID
+    //   - storeId: string (required) - Store ID
+    //   - timestamp: string (required) - Sale timestamp
+    //
+    // Collection: movements
+    // Document ID: {movementId}
+    // Fields:
+    //   - id: string (required) - Movement ID
+    //   - productId: string (required) - Product ID
+    //   - productName: string (optional) - Product name
+    //   - type: string (required, enum: ['in', 'out']) - Movement type
+    //   - quantity: number (required) - Movement quantity
+    //   - reason: string (optional) - Reason for movement
+    //   - userId: string (required) - User's UID
+    //   - storeId: string (required) - Store ID
+    //   - timestamp: string (required) - Movement timestamp
+    //
+    // Collection: logs
+    // Document ID: {logId}
+    // Fields:
+    //   - id: string (required) - Log ID
+    //   - userId: string (required) - User's UID
+    //   - action: string (required) - Action performed
+    //   - description: string (optional) - Action description
+    //   - timestamp: string (required) - Log timestamp
+    //   - storeId: string (required) - Store ID
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
+
     function isAdmin() {
-      return isAuthenticated() && (
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'admin') || 
-        request.auth.token.email == "Josuemantantu@gmail.com"
-      );
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "Josuemantantu@gmail.com" && request.auth.token.email_verified == true));
     }
-    
+
     function isManager() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'manager';
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'manager']);
     }
-    
-    function isStoreMember(storeId) {
-      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().storeId == storeId;
+
+    function isSameStore(storeId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.storeId == storeId;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email', 'role', 'storeId']) &&
+             data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             data.role in ['admin', 'manager', 'cashier'] &&
+             data.uid is string &&
+             data.email is string &&
+             data.role is string &&
+             data.storeId is string;
+    }
+
+    function isValidProduct(data) {
+      return hasRequiredFields(['id', 'name', 'buyPrice', 'sellPrice', 'stock', 'storeId']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.buyPrice is number && data.buyPrice >= 0 &&
+             data.sellPrice is number && data.sellPrice >= 0 &&
+             data.stock is number &&
+             data.storeId is string;
+    }
+
+    function isValidSale(data) {
+      return hasRequiredFields(['id', 'items', 'total', 'paymentMethod', 'cashierId', 'storeId', 'timestamp']) &&
+             data.id is string &&
+             data.items is list &&
+             data.total is number && data.total >= 0 &&
+             data.paymentMethod in ['cash', 'card', 'transfer'] &&
+             data.cashierId == request.auth.uid &&
+             data.storeId is string &&
+             isValidDateString(data.timestamp);
+    }
+
+    function isValidMovement(data) {
+      return hasRequiredFields(['id', 'productId', 'type', 'quantity', 'storeId', 'timestamp']) &&
+             data.id is string &&
+             data.productId is string &&
+             data.type in ['in', 'out'] &&
+             data.quantity is number && data.quantity > 0 &&
+             data.storeId is string &&
+             isValidDateString(data.timestamp);
+    }
+
+    function isValidLog(data) {
+      return hasRequiredFields(['id', 'userId', 'action', 'storeId', 'timestamp']) &&
+             data.id is string &&
+             data.userId == request.auth.uid &&
+             data.action is string &&
+             data.storeId is string &&
+             isValidDateString(data.timestamp);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Users
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role != 'admin' || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
     }
 
     // Stores
     match /stores/{storeId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAdmin();
-    }
-
-    // Users
-    match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isManager());
-      allow create: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
-      allow update: if isAuthenticated() && (isAdmin() || (request.auth.uid == userId && request.resource.data.role == resource.data.role));
+      allow read: if isAuthenticated() && isSameStore(storeId);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isManager() && isSameStore(storeId));
     }
 
     // Products
     match /products/{productId} {
-      allow read: if isAuthenticated() && isStoreMember(resource.data.storeId);
-      allow create: if isAuthenticated() && (isAdmin() || isManager()) && isStoreMember(request.resource.data.storeId);
-      allow update: if isAuthenticated() && (isAdmin() || isManager() || getUserData().role == 'cashier') && isStoreMember(resource.data.storeId);
-      allow delete: if isAuthenticated() && isAdmin();
+      allow read: if isAuthenticated() && isSameStore(resource.data.storeId);
+      allow create: if isManager() && isValidProduct(request.resource.data) && isSameStore(request.resource.data.storeId);
+      allow update: if isAuthenticated() && isSameStore(resource.data.storeId) && isValidProduct(request.resource.data);
+      allow delete: if isManager() && isSameStore(resource.data.storeId);
     }
 
     // Sales
     match /sales/{saleId} {
-      allow read: if isAuthenticated() && isStoreMember(resource.data.storeId);
-      allow create: if isAuthenticated() && isStoreMember(request.resource.data.storeId);
-      allow update, delete: if false; // Sales are immutable for security
+      allow read: if isAuthenticated() && isSameStore(resource.data.storeId);
+      allow create: if isAuthenticated() && isValidSale(request.resource.data) && isSameStore(request.resource.data.storeId);
+      allow update: if isAdmin(); // Sales are generally immutable
     }
 
-    // Suppliers
-    match /suppliers/{supplierId} {
-      allow read: if isAuthenticated() && isStoreMember(resource.data.storeId);
-      allow write: if isAuthenticated() && (isAdmin() || isManager()) && isStoreMember(request.resource.data.storeId);
+    // Movements
+    match /movements/{movementId} {
+      allow read: if isAuthenticated() && isSameStore(resource.data.storeId);
+      allow create: if isAuthenticated() && isValidMovement(request.resource.data) && isSameStore(request.resource.data.storeId);
+      allow update: if isAdmin();
     }
 
     // Logs
     match /logs/{logId} {
-      allow read: if isAuthenticated() && (isAdmin() || isManager());
-      allow create: if isAuthenticated();
-      allow update, delete: if false;
+      allow read: if isManager() && isSameStore(resource.data.storeId);
+      allow create: if isAuthenticated() && isValidLog(request.resource.data) && isSameStore(request.resource.data.storeId);
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

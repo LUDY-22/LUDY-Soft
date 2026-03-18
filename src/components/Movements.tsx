@@ -50,11 +50,12 @@ const Movements: React.FC<MovementsProps> = ({ user, store }) => {
   }, [store]);
 
   const fetchData = async () => {
+    if (!store) return;
     setLoading(true);
     try {
       const [movs, prods] = await Promise.all([
-        api.movements.list(),
-        api.products.list()
+        api.movements.list(store.id),
+        api.products.list(store.id)
       ]);
       setMovements(movs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       setProducts(prods);
@@ -73,7 +74,8 @@ const Movements: React.FC<MovementsProps> = ({ user, store }) => {
     try {
       await api.movements.create({
         ...formData,
-        productName: product.name
+        productName: product.name,
+        storeId: store!.id
       });
       setShowModal(false);
       setFormData({ productId: '', type: 'in', quantity: 1, reason: '' });

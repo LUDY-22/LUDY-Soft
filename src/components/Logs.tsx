@@ -38,9 +38,10 @@ const Logs: React.FC<LogsProps> = ({ user, store }) => {
   }, [store]);
 
   const fetchLogs = async () => {
+    if (!store) return;
     setLoading(true);
     try {
-      const allLogs = await api.logs.list();
+      const allLogs = await api.logs.list(store.id);
       setLogs(allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
     } catch (err) {
       console.error(err);

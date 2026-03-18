@@ -38,9 +38,10 @@ const Users: React.FC<UsersProps> = ({ user, store }) => {
   }, [store]);
 
   const fetchUsers = async () => {
+    if (!store) return;
     setLoading(true);
     try {
-      const allUsers = await api.users.list();
+      const allUsers = await api.users.list(store.id);
       setUsers(allUsers);
     } catch (err) {
       console.error(err);
@@ -52,7 +53,7 @@ const Users: React.FC<UsersProps> = ({ user, store }) => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.users.create(formData);
+      await api.users.create({ ...formData, storeId: store!.id });
       setShowModal(false);
       setFormData({ name: '', email: '', role: 'operator', password: '' });
       fetchUsers();

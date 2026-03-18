@@ -43,9 +43,10 @@ const Inventory: React.FC<InventoryProps> = ({ user, store }) => {
   }, [store]);
 
   const fetchProducts = async () => {
+    if (!store) return;
     setLoading(true);
     try {
-      const items = await api.products.list();
+      const items = await api.products.list(store.id);
       setProducts(items);
     } catch (err) {
       console.error(err);
@@ -62,7 +63,7 @@ const Inventory: React.FC<InventoryProps> = ({ user, store }) => {
       if (editingProduct) {
         await api.products.update(editingProduct.id, formData);
       } else {
-        await api.products.create(formData);
+        await api.products.create({ ...formData, storeId: store.id });
       }
       setShowModal(false);
       setEditingProduct(null);

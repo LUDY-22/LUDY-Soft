@@ -51,7 +51,7 @@ const Settings: React.FC<SettingsProps> = ({ user, store: initialStore }) => {
     setSuccess(false);
 
     try {
-      const updatedStore = await api.store.update(formData);
+      const updatedStore = await api.store.update(initialStore!.id, formData);
       setStore(updatedStore);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);

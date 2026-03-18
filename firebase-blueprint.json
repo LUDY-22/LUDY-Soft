@@ -1,10 +1,25 @@
 {
   "entities": {
-    "Store": {
-      "title": "Store",
-      "description": "A physical or virtual store location.",
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information",
       "type": "object",
       "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "manager", "cashier"] },
+        "storeId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "storeId"]
+    },
+    "Store": {
+      "title": "Store",
+      "description": "Store information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
         "name": { "type": "string" },
         "address": { "type": "string" },
         "phone": { "type": "string" },
@@ -12,30 +27,16 @@
         "receiptFooter": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name"]
-    },
-    "User": {
-      "title": "User",
-      "description": "A system user with specific roles.",
-      "type": "object",
-      "properties": {
-        "uid": { "type": "string" },
-        "email": { "type": "string" },
-        "displayName": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "manager", "cashier"] },
-        "storeId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["uid", "email", "role"]
+      "required": ["id", "name"]
     },
     "Product": {
       "title": "Product",
-      "description": "An item available for sale.",
+      "description": "Product in inventory",
       "type": "object",
       "properties": {
+        "id": { "type": "string" },
         "name": { "type": "string" },
         "category": { "type": "string" },
-        "supplierId": { "type": "string" },
         "buyPrice": { "type": "number" },
         "sellPrice": { "type": "number" },
         "stock": { "type": "number" },
@@ -45,55 +46,92 @@
         "storeId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "sellPrice", "storeId"]
+      "required": ["id", "name", "buyPrice", "sellPrice", "storeId"]
     },
     "Sale": {
       "title": "Sale",
-      "description": "A completed transaction.",
+      "description": "Sale transaction record",
       "type": "object",
       "properties": {
-        "items": { "type": "array" },
+        "id": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "price": { "type": "number" },
+              "total": { "type": "number" },
+              "profit": { "type": "number" }
+            }
+          }
+        },
         "total": { "type": "number" },
-        "paymentMethod": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["cash", "card", "transfer"] },
         "cashierId": { "type": "string" },
         "storeId": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       },
-      "required": ["total", "storeId", "timestamp"]
+      "required": ["id", "items", "total", "paymentMethod", "cashierId", "storeId", "timestamp"]
     },
-    "Supplier": {
-      "title": "Supplier",
-      "description": "A provider of products.",
+    "Movement": {
+      "title": "Movement",
+      "description": "Stock movement record",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "phone": { "type": "string" },
-        "email": { "type": "string" },
-        "address": { "type": "string" },
-        "storeId": { "type": "string" }
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "type": { "type": "string", "enum": ["in", "out"] },
+        "quantity": { "type": "number" },
+        "reason": { "type": "string" },
+        "userId": { "type": "string" },
+        "storeId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "storeId"]
+      "required": ["id", "productId", "type", "quantity", "storeId", "timestamp"]
     },
     "Log": {
       "title": "Log",
-      "description": "Audit log of system actions.",
+      "description": "Audit log entry",
       "type": "object",
       "properties": {
+        "id": { "type": "string" },
         "userId": { "type": "string" },
         "action": { "type": "string" },
         "description": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
         "storeId": { "type": "string" }
       },
-      "required": ["userId", "action", "timestamp"]
+      "required": ["id", "userId", "action", "storeId", "timestamp"]
     }
   },
   "firestore": {
-    "/stores": { "schema": "Store", "description": "Collection of stores." },
-    "/users": { "schema": "User", "description": "Collection of users." },
-    "/products": { "schema": "Product", "description": "Collection of products." },
-    "/sales": { "schema": "Sale", "description": "Collection of sales." },
-    "/suppliers": { "schema": "Supplier", "description": "Collection of suppliers." },
-    "/logs": { "schema": "Log", "description": "Collection of audit logs." }
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profiles"
+    },
+    "/stores/{storeId}": {
+      "schema": "Store",
+      "description": "Store details"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Inventory products"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Sales records"
+    },
+    "/movements/{movementId}": {
+      "schema": "Movement",
+      "description": "Stock movements"
+    },
+    "/logs/{logId}": {
+      "schema": "Log",
+      "description": "Audit logs"
+    }
   }
 }

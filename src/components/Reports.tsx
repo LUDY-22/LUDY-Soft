@@ -35,9 +35,10 @@ const Reports: React.FC<ReportsProps> = ({ user, store }) => {
   }, [store, dateRange]);
 
   const fetchSales = async () => {
+    if (!store) return;
     setLoading(true);
     try {
-      const allSales = await api.sales.list();
+      const allSales = await api.sales.list(store.id);
       const filtered = allSales.filter(sale => {
         const saleDate = new Date(sale.timestamp);
         return saleDate >= startOfDay(new Date(dateRange.start)) && 

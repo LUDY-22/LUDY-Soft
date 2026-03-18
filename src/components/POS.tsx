@@ -49,9 +49,10 @@ const POS: React.FC<POSProps> = ({ user, store }) => {
   }, [store]);
 
   const fetchProducts = async () => {
+    if (!store) return;
     setLoading(true);
     try {
-      const items = await api.products.list();
+      const items = await api.products.list(store.id);
       setProducts(items);
     } catch (err) {
       console.error(err);

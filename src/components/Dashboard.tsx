@@ -51,14 +51,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, store }) => {
         const today = startOfDay(new Date());
         
         // Fetch products for stock stats
-        const products = await api.products.list();
+        const products = await api.products.list(store.id);
         let lowStockCount = 0;
         products.forEach(p => {
           if (p.stock <= p.minStock) lowStockCount++;
         });
 
         // Fetch sales
-        const sales = await api.sales.list();
+        const sales = await api.sales.list(store.id);
         const todaySales = sales.filter(s => {
           const saleDate = new Date(s.timestamp);
           return saleDate >= today && saleDate <= endOfDay(new Date());
