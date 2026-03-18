@@ -147,6 +147,22 @@ async function startServer() {
       createdAt: new Date().toISOString()
     };
     db.products.push(newProduct);
+
+    // Create initial stock movement if stock > 0
+    if (newProduct.stock > 0) {
+      db.movements.push({
+        id: Math.random().toString(36).substr(2, 9),
+        storeId: req.user.storeId,
+        productId: newProduct.id,
+        productName: newProduct.name,
+        type: 'in',
+        quantity: newProduct.stock,
+        reason: 'Estoque inicial (Cadastro)',
+        userId: req.user.uid,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     await saveDB(db);
     res.json(newProduct);
   });
@@ -156,7 +172,26 @@ async function startServer() {
     const index = db.products.findIndex((p: any) => p.id === req.params.id && p.storeId === req.user.storeId);
     if (index === -1) return res.status(404).json({ error: 'Produto não encontrado' });
 
-    db.products[index] = { ...db.products[index], ...req.body, updatedAt: new Date().toISOString() };
+    const oldProduct = db.products[index];
+    const updatedProduct = { ...oldProduct, ...req.body, updatedAt: new Date().toISOString() };
+    
+    // If stock changed manually, record movement
+    if (updatedProduct.stock !== oldProduct.stock) {
+      const diff = updatedProduct.stock - oldProduct.stock;
+      db.movements.push({
+        id: Math.random().toString(36).substr(2, 9),
+        storeId: req.user.storeId,
+        productId: updatedProduct.id,
+        productName: updatedProduct.name,
+        type: diff > 0 ? 'in' : 'out',
+        quantity: Math.abs(diff),
+        reason: 'Ajuste manual de estoque',
+        userId: req.user.uid,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    db.products[index] = updatedProduct;
     await saveDB(db);
     res.json(db.products[index]);
   });

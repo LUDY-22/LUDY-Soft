@@ -39,6 +39,7 @@ export interface SaleItem {
   quantity: number;
   price: number;
   total: number;
+  profit: number;
 }
 
 export interface Sale {

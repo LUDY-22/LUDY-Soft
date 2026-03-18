@@ -91,7 +91,8 @@ const POS: React.FC<POSProps> = ({ user, store }) => {
         name: product.name,
         quantity: 1,
         price: product.sellPrice,
-        total: product.sellPrice
+        total: product.sellPrice,
+        profit: product.sellPrice - product.buyPrice
       }]);
     }
     setSearch('');
@@ -110,7 +111,13 @@ const POS: React.FC<POSProps> = ({ user, store }) => {
           setTimeout(() => setError(''), 3000);
           return item;
         }
-        return newQty === 0 ? null : { ...item, quantity: newQty, total: newQty * item.price };
+        const unitProfit = product.sellPrice - product.buyPrice;
+        return newQty === 0 ? null : { 
+          ...item, 
+          quantity: newQty, 
+          total: newQty * item.price,
+          profit: newQty * unitProfit
+        };
       }
       return item;
     }).filter(Boolean) as SaleItem[]);
